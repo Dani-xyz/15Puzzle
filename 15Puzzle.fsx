@@ -5,7 +5,8 @@ open System
 
 type Game =
     { Board: int list
-      InitialState: int list }
+      InitialState: int list
+      Moves: int }
 
 
 let findZeroIndex =
@@ -30,9 +31,9 @@ let countInversions (board: int list) =
 
 
 let isSolvable board =
-    let zeroRow = (findZeroIndex board) / 4
+    let zeroRow = findZeroIndex board / 4
     let inversions = countInversions board
-    (zeroRow % 2) <> (inversions % 2)
+    zeroRow % 2 <> inversions % 2
 
 
 let rec newGame () =
@@ -42,71 +43,90 @@ let rec newGame () =
         newGame()
     else
         { Board = board
-          InitialState = board }
+          InitialState = board
+          Moves = 0 }
 
 
-let swap a b game =
-    let f = function
-        | x when x = a -> b
-        | x when x = b -> a
-        | x            -> x
-    let newBoard = List.map f game.Board
+let swap i j game =
+    let board = game.Board
+    let f idx v =
+        match idx with
+        | _ when idx = i -> board.[j]
+        | _ when idx = j -> board.[i]
+        | _              -> v
+    let newBoard = List.mapi f board
     { game with Board = newBoard }
 
 
-let renderGame game =
+let reset game =
+    { game with
+        Board = game.InitialState
+        Moves = 0 }
+
+
+let incMoves game =
+    { game with Moves = game.Moves + 1 }
+
+
+let render game =
     let b = List.map (fun x -> if x = 0 then "  " else $"{x, 2}") game.Board
-    printfn $"┌────┬────┬────┬────┐\n\
-              │ {b.[0]} │ {b.[1]} │ {b.[2]} │ {b.[3]} │\n\
-              ├────┼────┼────┼────┤\n\
-              │ {b.[4]} │ {b.[5]} │ {b.[6]} │ {b.[7]} │\n\
-              ├────┼────┼────┼────┤\n\
-              │ {b.[8]} │ {b.[9]} │ {b.[10]} │ {b.[11]} │\n\
-              ├────┼────┼────┼────┤\n\
-              │ {b.[12]} │ {b.[13]} │ {b.[14]} │ {b.[15]} │\n\
-              └────┴────┴────┴────┘"
+    $"┌────┬────┬────┬────┐\n\
+      │ {b.[0]} │ {b.[1]} │ {b.[2]} │ {b.[3]} │\n\
+      ├────┼────┼────┼────┤\n\
+      │ {b.[4]} │ {b.[5]} │ {b.[6]} │ {b.[7]} │\n\
+      ├────┼────┼────┼────┤\n\
+      │ {b.[8]} │ {b.[9]} │ {b.[10]} │ {b.[11]} │\n\
+      ├────┼────┼────┼────┤\n\
+      │ {b.[12]} │ {b.[13]} │ {b.[14]} │ {b.[15]} │\n\
+      └────┴────┴────┴────┘\n\
+      Moves: {game.Moves}\n\
+      \n\
+      [N] New game\n\
+      [R] Restart\n\
+      [Q] Quit"
 
 
 let rec main game =
-    let board = game.Board
-    let zero = findZeroIndex board
+    let zero = findZeroIndex game.Board
 
     let rec loop () =
-        if Console.KeyAvailable then
-            match Console.ReadKey().Key with
-            | ConsoleKey.Q          -> Environment.Exit 0
-            | ConsoleKey.R          -> main { game with Board = game.InitialState }
-            | ConsoleKey.N          -> main <| newGame()
-            | ConsoleKey.UpArrow    -> if zero / 4 = 3 then loop() else main <| swap 0 board.[zero + 4] game
-            | ConsoleKey.DownArrow  -> if zero / 4 = 0 then loop() else main <| swap 0 board.[zero - 4] game
-            | ConsoleKey.LeftArrow  -> if zero % 4 = 3 then loop() else main <| swap 0 board.[zero + 1] game
-            | ConsoleKey.RightArrow -> if zero % 4 = 0 then loop() else main <| swap 0 board.[zero - 1] game
-            | _                     -> loop()
-        else
-            loop()
+        match Console.ReadKey().Key with
+        | ConsoleKey.Q                             -> () // exit
+        | ConsoleKey.R                             -> game |> reset |> main
+        | ConsoleKey.N                             -> newGame() |> main
+        | ConsoleKey.UpArrow    when zero / 4 <> 3 -> game |> incMoves |> swap zero (zero + 4) |> main
+        | ConsoleKey.DownArrow  when zero / 4 <> 0 -> game |> incMoves |> swap zero (zero - 4) |> main
+        | ConsoleKey.LeftArrow  when zero % 4 <> 3 -> game |> incMoves |> swap zero (zero + 1) |> main
+        | ConsoleKey.RightArrow when zero % 4 <> 0 -> game |> incMoves |> swap zero (zero - 1) |> main
+        | _                                        -> loop()
 
     let rec smallLoop () =
-        if Console.KeyAvailable then
-            match Console.ReadKey().Key with
-            | ConsoleKey.Q -> Environment.Exit 0
-            | ConsoleKey.R -> main { game with Board = game.InitialState }
-            | ConsoleKey.N -> main <| newGame()
-            | _            -> smallLoop()
-        else
-            smallLoop()
+        match Console.ReadKey().Key with
+        | ConsoleKey.Q -> () // exit
+        | ConsoleKey.R -> reset game |> main
+        | ConsoleKey.N -> newGame() |> main
+        | _            -> smallLoop()
 
     Console.Clear()
-    renderGame game
-    printfn "[N] New game\n[R] Restart\n[Q] Quit"
+    render game |> printfn "%s"
 
-    if solved board then
+    if solved game.Board then
         printfn "\n─── SOLVED! ───"
         smallLoop()
-    
-    loop()
-    
+    else
+        loop()
 
-main <| newGame()
+
+let _ =
+    // switch to alternate screen + hide cursor
+    printf "\x1b[?1049h\x1b[?25l"
+
+    // play
+    newGame() |> main
+
+    // show cursor + return from alternate screen + move cursor up one line
+    printf "\x1b[?25h\x1b[?1049l\x1b[1A"
+
 
 (*
 ┌────┬────┬────┬────┐
