@@ -1,4 +1,4 @@
-// 15-puzzle game
+// 15 puzzle game
 
 open System
 
@@ -11,10 +11,6 @@ type Game =
 
 let findZeroIndex =
     List.findIndex (fun x -> x = 0)
-
-
-let solved board =
-    board = [1; 2; 3; 4; 5; 6; 7; 8; 9; 10; 11; 12; 13; 14; 15; 0]
 
 
 let countInversions (board: int list) =
@@ -36,10 +32,14 @@ let isSolvable board =
     zeroRow % 2 <> inversions % 2
 
 
+let isSolved board =
+    board = [1; 2; 3; 4; 5; 6; 7; 8; 9; 10; 11; 12; 13; 14; 15; 0]
+
+
 let rec newGame () =
     let rnd = Random()
     let board = [0 .. 15] |> List.sortBy (fun _ -> rnd.Next(0, 16))
-    if not (isSolvable board) || solved board then
+    if not (isSolvable board) || isSolved board then
         newGame()
     else
         { Board = board
@@ -70,7 +70,8 @@ let incMoves game =
 
 let render game =
     let b = List.map (fun x -> if x = 0 then "  " else $"{x, 2}") game.Board
-    $"┌────┬────┬────┬────┐\n\
+    $"───── 15 PUZZLE ─────\n\
+      ┌────┬────┬────┬────┐\n\
       │ {b.[0]} │ {b.[1]} │ {b.[2]} │ {b.[3]} │\n\
       ├────┼────┼────┼────┤\n\
       │ {b.[4]} │ {b.[5]} │ {b.[6]} │ {b.[7]} │\n\
@@ -91,9 +92,9 @@ let rec main game =
 
     let rec loop () =
         match Console.ReadKey().Key with
-        | ConsoleKey.Q                             -> () // exit
-        | ConsoleKey.R                             -> game |> reset |> main
+        | ConsoleKey.Q                             -> ()  // exit
         | ConsoleKey.N                             -> newGame() |> main
+        | ConsoleKey.R                             -> game |> reset |> main
         | ConsoleKey.UpArrow    when zero / 4 <> 3 -> game |> incMoves |> swap zero (zero + 4) |> main
         | ConsoleKey.DownArrow  when zero / 4 <> 0 -> game |> incMoves |> swap zero (zero - 4) |> main
         | ConsoleKey.LeftArrow  when zero % 4 <> 3 -> game |> incMoves |> swap zero (zero + 1) |> main
@@ -102,15 +103,15 @@ let rec main game =
 
     let rec smallLoop () =
         match Console.ReadKey().Key with
-        | ConsoleKey.Q -> () // exit
-        | ConsoleKey.R -> reset game |> main
+        | ConsoleKey.Q -> ()  // exit
         | ConsoleKey.N -> newGame() |> main
+        | ConsoleKey.R -> game |> reset |> main
         | _            -> smallLoop()
 
     Console.Clear()
     render game |> printfn "%s"
 
-    if solved game.Board then
+    if isSolved game.Board then
         printfn "\n─── SOLVED! ───"
         smallLoop()
     else
@@ -126,16 +127,3 @@ let _ =
 
     // show cursor + return from alternate screen + move cursor up one line
     printf "\x1b[?25h\x1b[?1049l\x1b[1A"
-
-
-(*
-┌────┬────┬────┬────┐
-│  1 │  2 │  3 │  4 │
-├────┼────┼────┼────┤
-│  5 │  6 │  7 │  8 │
-├────┼────┼────┼────┤
-│  9 │ 10 │ 11 │ 12 │
-├────┼────┼────┼────┤
-│ 13 │ 14 │ 15 │    │
-└────┴────┴────┴────┘
-*)
