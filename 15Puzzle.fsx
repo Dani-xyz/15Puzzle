@@ -14,16 +14,13 @@ let findZeroIndex =
 
 
 let countInversions (board: int list) =
-    let rec loop i acc =
-        if i = 15 then
-            acc
-        else
-            let (_, count) =
-                [i + 1 .. 15]
-                |> List.countBy (fun j -> board.[i] > board.[j] && board.[j] <> 0)
-                |> fun ls -> match List.tryFind (fun (b, _) -> b) ls with Some t -> t | None -> (true, 0)
-            loop (i + 1) (acc + count)
-    loop 0 0
+    let f acc i =
+        [i + 1 .. 15]
+        |> List.countBy (fun j -> board.[i] > board.[j] && board.[j] <> 0)
+        |> fun xs -> match List.tryFind fst xs with Some(_, x) -> x | None -> 0
+        |> ( + ) acc
+    [0 .. 14]
+    |> List.fold f 0
 
 
 let isSolvable board =
@@ -126,4 +123,4 @@ let _ =
     newGame() |> main
 
     // show cursor + return from alternate screen + move cursor up one line
-    printf "\x1b[?25h\x1b[?1049l\x1b[1A"
+    printf "\x1b[?25h\x1b[?1049l\x1b[F"
